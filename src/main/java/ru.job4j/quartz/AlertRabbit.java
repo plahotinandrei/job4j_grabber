@@ -11,7 +11,8 @@ import static org.quartz.SimpleScheduleBuilder.*;
 
 public class AlertRabbit {
     public static void main(String[] args) {
-        try (Connection store = getConnection()) {
+        Properties config = getProperties();
+        try (Connection store = getConnection(config)) {
             Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
             scheduler.start();
             JobDataMap data = new JobDataMap();
@@ -19,7 +20,7 @@ public class AlertRabbit {
             JobDetail job = newJob(Rabbit.class)
                     .usingJobData(data)
                     .build();
-            int interval = Integer.parseInt(getProperty("rabbit.interval"));
+            int interval = Integer.parseInt(config.getProperty("rabbit.interval"));
             SimpleScheduleBuilder times = simpleSchedule()
                     .withIntervalInSeconds(interval)
                     .repeatForever();
@@ -28,7 +29,7 @@ public class AlertRabbit {
                     .withSchedule(times)
                     .build();
             scheduler.scheduleJob(job, trigger);
-            int sleep = Integer.parseInt(getProperty("rabbit.sleep"));
+            int sleep = Integer.parseInt(config.getProperty("rabbit.sleep"));
             Thread.sleep(sleep);
             scheduler.shutdown();
         } catch (Exception se) {
@@ -56,30 +57,25 @@ public class AlertRabbit {
         }
     }
 
-    public static String getProperty(String key) {
-        String rsl;
+    public static Properties getProperties() {
         try (
                 InputStream in =
                         AlertRabbit.class.getClassLoader().getResourceAsStream("rabbit.properties")
         ) {
             Properties config = new Properties();
             config.load(in);
-            rsl = config.getProperty(key);
+            return config;
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
-        return rsl;
     }
 
-    public static Connection getConnection() {
-        try {
-            Class.forName(getProperty("rabbit.driver"));
-            String url = getProperty("rabbit.url");
-            String login = getProperty("rabbit.username");
-            String password = getProperty("rabbit.password");
-            return DriverManager.getConnection(url, login, password);
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
+    public static Connection getConnection(Properties config) throws SQLException, ClassNotFoundException {
+        Class.forName(config.getProperty("rabbit.driver"));
+        String url = config.getProperty("rabbit.url");
+        String login = config.getProperty("rabbit.username");
+        String password = config.getProperty("rabbit.password");
+        return DriverManager.getConnection(url, login, password);
+
     }
 }
