@@ -28,13 +28,26 @@ public class HabrCareerParse {
                 LocalDateTime date = new HabrCareerDateTimeParser().parse(
                         row.select(".vacancy-card__date").first().child(0).attr("datetime")
                 );
-                System.out.printf("%s %s %s%n", vacancyName, link, date);
+                String description = retrieveDescription(link);
+                System.out.printf("%s %s %s%n %s%n", vacancyName, link, date, description);
             });
         }
     }
 
     private static String getPageLink(int pageNumber) {
         return String.format("%s?page=%s", PAGE_LINK, pageNumber);
+    }
+
+    private static String retrieveDescription(String link) {
+        String description = "";
+        try {
+            Connection connection = Jsoup.connect(link);
+            Document document = connection.get();
+            description = document.select(".collapsible-description__content").first().html();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return description;
     }
 }
 
