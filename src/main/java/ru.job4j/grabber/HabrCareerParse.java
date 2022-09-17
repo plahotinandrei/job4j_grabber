@@ -59,7 +59,7 @@ public class HabrCareerParse implements Parse {
             Connection connection = Jsoup.connect(link);
             Document document = connection.get();
             description = Objects.requireNonNull(document.select(".collapsible-description__content").first())
-                    .html();
+                    .text();
         } catch (IOException e) {
             e.printStackTrace();
         }
