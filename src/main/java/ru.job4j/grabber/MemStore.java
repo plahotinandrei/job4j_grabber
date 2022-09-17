@@ -6,9 +6,11 @@ import java.util.List;
 public class MemStore implements Store {
 
     private final List<Post> posts = new ArrayList<>();
+    private int ids = 1;
 
     @Override
     public void save(Post post) {
+        post.setId(ids++);
         posts.add(post);
     }
 
