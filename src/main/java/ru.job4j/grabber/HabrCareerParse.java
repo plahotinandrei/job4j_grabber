@@ -28,32 +28,23 @@ public class HabrCareerParse implements Parse {
     public List<Post> list(String link) {
         List<Post> posts = new ArrayList<>();
         try {
-            Connection connection = Jsoup.connect(link);
-            Document document = connection.get();
-            Elements rows = document.select(".vacancy-card__inner");
-            rows.forEach(row -> {
-                Element titleElement = row.select(".vacancy-card__title").first();
-                Element linkElement = Objects.requireNonNull(titleElement).child(0);
-                String vacancyName = titleElement.text();
-                String vacancyLink = String.format("%s%s", SOURCE_LINK, linkElement.attr("href"));
-                LocalDateTime date = dateTimeParser.parse(
-                        Objects.requireNonNull(row.select(".vacancy-card__date").first()).child(0)
-                                .attr("datetime")
-                );
-                String description = retrieveDescription(vacancyLink);
-                posts.add(new Post(vacancyName, vacancyLink, description, date));
-            });
+            for (int pageNumber = 1; pageNumber <= PAGE_AMOUNT; pageNumber++) {
+                Connection connection = Jsoup.connect(getPageLink(link, pageNumber));
+                Document document = connection.get();
+                Elements rows = document.select(".vacancy-card__inner");
+                rows.forEach(row -> posts.add(getPost(row)));
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
         return posts;
     }
 
-    private static String getPageLink(int pageNumber) {
-        return String.format("%s?page=%s", PAGE_LINK, pageNumber);
+    private String getPageLink(String link, int pageNumber) {
+        return String.format("%s?page=%s", link, pageNumber);
     }
 
-    private static String retrieveDescription(String link) {
+    private String retrieveDescription(String link) {
         String description = "";
         try {
             Connection connection = Jsoup.connect(link);
@@ -66,11 +57,22 @@ public class HabrCareerParse implements Parse {
         return description;
     }
 
+    private Post getPost(Element el) {
+        Element titleElement = el.select(".vacancy-card__title").first();
+        Element linkElement = Objects.requireNonNull(titleElement).child(0);
+        String vacancyName = titleElement.text();
+        String vacancyLink = String.format("%s%s", SOURCE_LINK, linkElement.attr("href"));
+        LocalDateTime date = dateTimeParser.parse(
+                Objects.requireNonNull(el.select(".vacancy-card__date").first()).child(0)
+                        .attr("datetime")
+        );
+        String description = retrieveDescription(vacancyLink);
+        return new Post(vacancyName, vacancyLink, description, date);
+    }
+
     public static void main(String[] args) {
         Parse parser = new HabrCareerParse(new HabrCareerDateTimeParser());
-        for (int pageNumber = 1; pageNumber <= PAGE_AMOUNT; pageNumber++) {
-            parser.list(getPageLink(pageNumber)).forEach(System.out::println);
-        }
+        parser.list(PAGE_LINK).forEach(System.out::println);
     }
 }
 
